@@ -1,0 +1,41 @@
+services:
+  app:
+    build: ./app
+    container_name: bugdash-app
+    ports: ["8080:8080"]
+    environment:
+      AUTH_USERNAME: "admin"         # change me
+      AUTH_PASSWORD: "change-me"     # change me
+      DB_PATH: "/data/bugdash.db"
+      NUCLEI_TEMPLATES_DIR: "/data/nuclei-templates"
+      CUSTOM_TEMPLATES_DIR: "/data/custom-templates"
+    volumes:
+      - ./data:/data
+      - ./logs:/var/log/bugdash
+    depends_on: [worker, scheduler]
+
+  worker:
+    build: ./worker
+    container_name: bugdash-worker
+    environment:
+      DB_PATH: "/data/bugdash.db"
+      NUCLEI_TEMPLATES_DIR: "/data/nuclei-templates"
+      CUSTOM_TEMPLATES_DIR: "/data/custom-templates"
+    volumes:
+      - ./data:/data
+      - ./logs:/var/log/bugdash
+
+  scheduler:
+    build: ./scheduler
+    container_name: bugdash-scheduler
+    environment:
+      DB_PATH: "/data/bugdash.db"
+      MERGE_WILDCARDS_INTERVAL_SEC: "1800"   # re-pull arkadiyt every 30m
+      ENQUEUE_INTERVAL_SEC: "120"            # check queue every 2m
+      SCAN_COOLDOWN_SEC: "86400"             # rescan each target ~daily
+      MAX_PARALLEL_QUEUED: "3"               # limit queued/running tasks
+      ARKADIYT_WILDCARDS_URL: "https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/wildcards.txt"
+    volumes:
+      - ./data:/data
+      - ./logs:/var/log/bugdash
+    depends_on: [worker]

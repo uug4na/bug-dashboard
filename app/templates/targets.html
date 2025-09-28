@@ -1,0 +1,23 @@
+<!doctype html><html><head>
+  <meta charset="utf-8"><title>Targets</title>
+  <link rel="stylesheet" href="/static/main.css">
+  </head><body>
+  <h1>Targets</h1>
+  <form method="post" action="/targets/add" style="margin-bottom:16px">
+    <input name="pattern" placeholder="*.example.com or *-prod.example.com" required>
+    <button>Add</button>
+  </form>
+  <table>
+    <tr><th>Pattern</th><th>Seed</th><th>Last Scanned (epoch)</th><th>Enabled</th></tr>
+    {% for t in targets %}
+    <tr>
+      <td><code>{{t['pattern']}}</code></td>
+      <td>{{t['seed']}}</td>
+      <td>{{t['last_scanned']}}</td>
+      <td>{{t['enabled']}}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p><a href="/">Home</a></p>
+  </body></html>
+  

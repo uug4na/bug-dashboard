@@ -1,0 +1,15 @@
+# python
+__pycache__/
+*.pyc
+
+# env / creds
+.env
+
+# docker
+logs/
+data/bugdash.db
+
+# OS
+.DS_Store
+Thumbs.db
+

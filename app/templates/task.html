@@ -1,0 +1,32 @@
+<!doctype html><html><head>
+  <meta charset="utf-8"><title>Task {{t['id']}}</title>
+  <link rel="stylesheet" href="/static/main.css">
+  <meta http-equiv="refresh" content="5">
+  </head><body>
+  <h1>Task {{t['id']}} — {{t['target']}}</h1>
+  <p>Status: <b>{{t['status']}}</b> {{t['note']}}</p>
+  <p><a href="/">Home</a> • <a href="/task/{{t['id']}}/raw">Raw JSON (nuclei)</a></p>
+  
+  <h2>Findings (deduped)</h2>
+  <table>
+    <tr><th>Label</th><th>Severity</th><th>Title</th><th>Detail</th><th>Count</th></tr>
+    {% for f in findings %}
+    <tr>
+      <td>{{f['label']}}</td>
+      <td>{{f['severity']}}</td>
+      <td>{{f['title']}}</td>
+      <td><code>{{f['detail']}}</code></td>
+      <td>{{f['c']}}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  
+  <h2>Assets</h2>
+  <table>
+    <tr><th>Kind</th><th>Value</th></tr>
+    {% for a in assets %}
+    <tr><td>{{a['kind']}}</td><td><code>{{a['value']}}</code></td></tr>
+    {% endfor %}
+  </table>
+  </body></html>
+  

@@ -1,0 +1,25 @@
+<!doctype html><html><head>
+  <meta charset="utf-8"><title>BugDash</title>
+  <link rel="stylesheet" href="/static/main.css">
+  </head><body>
+  <h1>BugDash</h1>
+  <form method="post" action="/scan">
+    <input name="target" placeholder="manual: example.com" required>
+    <button>Start Scan</button>
+    <a href="/templates">Templates</a> • <a href="/targets">Targets ({{tcount}})</a>
+  </form>
+  <h2>Recent Tasks</h2>
+  <table>
+    <tr><th>Task</th><th>Target</th><th>Status</th><th>Note</th><th>When (epoch)</th></tr>
+    {% for t in tasks %}
+    <tr>
+      <td><a href="/task/{{t['id']}}">{{t['id']}}</a></td>
+      <td>{{t['target']}}</td>
+      <td>{{t['status']}}</td>
+      <td>{{t['note']}}</td>
+      <td>{{t['created_at']}}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </body></html>
+  

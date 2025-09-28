@@ -26,6 +26,7 @@ def render(tpl_name, ctx):
 def db():
     con = sqlite3.connect(DB_PATH)
     con.row_factory = sqlite3.Row
+    # tables (and upgrades handled in worker too)
     con.execute("""CREATE TABLE IF NOT EXISTS tasks(
         id TEXT PRIMARY KEY, target TEXT, created_at INTEGER, status TEXT, note TEXT
     )""")
@@ -37,6 +38,7 @@ def db():
     con.execute("""CREATE TABLE IF NOT EXISTS findings(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         task_id TEXT, tool TEXT, fingerprint TEXT, title TEXT, detail TEXT, severity TEXT, label TEXT, raw JSON,
+        score INTEGER DEFAULT 0, reasons TEXT DEFAULT '',
         UNIQUE(task_id, tool, fingerprint)
     )""")
     con.execute("""CREATE TABLE IF NOT EXISTS targets(
@@ -47,6 +49,15 @@ def db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         pattern TEXT UNIQUE
     )""")
+    # upgrades
+    try:
+        con.execute("ALTER TABLE findings ADD COLUMN score INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        con.execute("ALTER TABLE findings ADD COLUMN reasons TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass
     return con
 
 class BasicAuth(BaseHTTPMiddleware):
@@ -72,12 +83,27 @@ app.add_middleware(BasicAuth)
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     with db() as con:
-        tasks = con.execute("SELECT * FROM tasks ORDER BY created_at DESC LIMIT 50").fetchall()
-        tcount = con.execute("SELECT COUNT(*) c FROM targets WHERE enabled=1").fetchone()["c"]
-    return render("index.html", {"request": request, "tasks": tasks, "tcount": tcount})
+        # running → queued → done → error → (anything else)
+        tasks = con.execute("""
+            SELECT * FROM tasks
+            ORDER BY
+              CASE status
+                WHEN 'running' THEN 0
+                WHEN 'queued'  THEN 1
+                WHEN 'done'    THEN 2
+                WHEN 'error'   THEN 3
+                ELSE 4
+              END,
+              created_at DESC
+            LIMIT 100
+        """).fetchall()
+        tcount  = con.execute("SELECT COUNT(*) c FROM targets WHERE enabled=1").fetchone()["c"]
+        running = con.execute("SELECT COUNT(*) c FROM tasks WHERE status='running'").fetchone()["c"]
+    return render("index.html", {"request": request, "tasks": tasks, "tcount": tcount, "running": running})
 
 @app.post("/scan")
 def scan(target: str = Form(...)):
+    import uuid, time
     task_id = uuid.uuid4().hex[:12]
     now = int(time.time())
     with db() as con:
@@ -85,8 +111,6 @@ def scan(target: str = Form(...)):
                     (task_id, target, now, "queued", ""))
         con.execute("INSERT OR IGNORE INTO scope(pattern) VALUES(?)", (f"*.{target}",))
         con.commit()
-    subprocess.run(["docker","exec","-d","bugdash-worker","python3","/usr/local/bin/run_pipeline.py",task_id,target],
-                   check=False)
     return RedirectResponse(url=f"/task/{task_id}", status_code=303)
 
 @app.get("/task/{task_id}", response_class=HTMLResponse)
@@ -95,11 +119,15 @@ def task_view(request: Request, task_id: str):
         t = con.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
         if not t: raise HTTPException(404)
         assets = con.execute("SELECT * FROM assets WHERE task_id=? ORDER BY id DESC LIMIT 500", (task_id,)).fetchall()
-        findings = con.execute("""SELECT title,detail,severity,label, COUNT(*) as c
-                                  FROM findings WHERE task_id=?
-                                  GROUP BY title,detail,severity,label ORDER BY c DESC""",
-                               (task_id,)).fetchall()
-    return render("task.html", {"request": request, "t": t, "assets": assets, "findings": findings})
+        # aggregated view (for quick dedupe glance)
+        agg = con.execute("""SELECT title,detail,severity,label, COUNT(*) as c
+                             FROM findings WHERE task_id=?
+                             GROUP BY title,detail,severity,label ORDER BY c DESC""", (task_id,)).fetchall()
+        # top scored view
+        tops = con.execute("""SELECT title,detail,severity,label,score,reasons
+                              FROM findings WHERE task_id=? ORDER BY score DESC, id DESC LIMIT 200""",
+                           (task_id,)).fetchall()
+    return render("task.html", {"request": request, "t": t, "assets": assets, "findings": agg, "tops": tops})
 
 @app.get("/task/{task_id}/raw", response_class=PlainTextResponse)
 def task_raw(task_id: str):

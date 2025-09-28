@@ -1,23 +1,52 @@
-<!doctype html><html><head>
-  <meta charset="utf-8"><title>Targets</title>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Targets</title>
   <link rel="stylesheet" href="/static/main.css">
-  </head><body>
-  <h1>Targets</h1>
-  <form method="post" action="/targets/add" style="margin-bottom:16px">
-    <input name="pattern" placeholder="*.example.com or *-prod.example.com" required>
-    <button>Add</button>
-  </form>
-  <table>
-    <tr><th>Pattern</th><th>Seed</th><th>Last Scanned (epoch)</th><th>Enabled</th></tr>
-    {% for t in targets %}
-    <tr>
-      <td><code>{{t['pattern']}}</code></td>
-      <td>{{t['seed']}}</td>
-      <td>{{t['last_scanned']}}</td>
-      <td>{{t['enabled']}}</td>
-    </tr>
-    {% endfor %}
-  </table>
-  <p><a href="/">Home</a></p>
-  </body></html>
-  
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <div class="nav">
+    <div class="wrap">
+      <div class="brand">🐞 BugDash</div>
+      <a href="/">Home</a>
+      <a href="/targets">Targets</a>
+      <a href="/templates">Templates</a>
+      <div class="right toggle" onclick="toggleTheme()">Theme</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="panel">
+      <h2 class="m0">Add target pattern</h2>
+      <div class="content">
+        <form method="post" action="/targets/add" class="flex">
+          <input name="pattern" placeholder="*.example.com or *-prod.example.com" required>
+          <button>Add</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="panel mt16">
+      <h2 class="m0">All targets</h2>
+      <div class="content">
+        <table class="table">
+          <thead><tr><th>Pattern</th><th>Seed</th><th>Last Scanned (epoch)</th><th>Enabled</th></tr></thead>
+          <tbody>
+          {% for t in targets %}
+            <tr>
+              <td><code>{{t['pattern']}}</code></td>
+              <td><code>{{t['seed']}}</code></td>
+              <td class="muted">{{t['last_scanned']}}</td>
+              <td>{% if t['enabled'] %}<span class="chip ok">yes</span>{% else %}<span class="chip gray">no</span>{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

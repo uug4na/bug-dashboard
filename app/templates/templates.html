@@ -1,15 +1,44 @@
-<!doctype html><html><head>
-  <meta charset="utf-8"><title>Custom Templates</title>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Templates</title>
   <link rel="stylesheet" href="/static/main.css">
-  </head><body>
-  <h1>Custom Nuclei Templates</h1>
-  <form method="post" action="/upload-template" enctype="multipart/form-data" style="margin-bottom:12px">
-    <input type="file" name="file" accept=".yaml,.yml" required>
-    <button>Upload</button>
-  </form>
-  <ul>
-    {% for f in files %}<li>{{f}}</li>{% endfor %}
-  </ul>
-  <p><a href="/">Home</a></p>
-  </body></html>
-  
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <div class="nav">
+    <div class="wrap">
+      <div class="brand">🐞 BugDash</div>
+      <a href="/">Home</a>
+      <a href="/targets">Targets</a>
+      <a href="/templates">Templates</a>
+      <div class="right toggle" onclick="toggleTheme()">Theme</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="panel">
+      <h2 class="m0">Upload a nuclei template</h2>
+      <div class="content">
+        <form method="post" action="/upload-template" enctype="multipart/form-data" class="flex">
+          <input type="file" name="file" accept=".yaml,.yml" required>
+          <button>Upload</button>
+        </form>
+        <p class="muted mt8">Uploaded files go to <code>/data/custom-templates</code></p>
+      </div>
+    </div>
+
+    <div class="panel mt16">
+      <h2 class="m0">Custom templates</h2>
+      <div class="content">
+        <ul>
+          {% for f in files %}
+            <li><code>{{f}}</code></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

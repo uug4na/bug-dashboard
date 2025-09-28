@@ -1,32 +1,123 @@
-<!doctype html><html><head>
-  <meta charset="utf-8"><title>Task {{t['id']}}</title>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task {{t['id']}}</title>
   <link rel="stylesheet" href="/static/main.css">
-  <meta http-equiv="refresh" content="5">
-  </head><body>
-  <h1>Task {{t['id']}} — {{t['target']}}</h1>
-  <p>Status: <b>{{t['status']}}</b> {{t['note']}}</p>
-  <p><a href="/">Home</a> • <a href="/task/{{t['id']}}/raw">Raw JSON (nuclei)</a></p>
-  
-  <h2>Findings (deduped)</h2>
-  <table>
-    <tr><th>Label</th><th>Severity</th><th>Title</th><th>Detail</th><th>Count</th></tr>
-    {% for f in findings %}
-    <tr>
-      <td>{{f['label']}}</td>
-      <td>{{f['severity']}}</td>
-      <td>{{f['title']}}</td>
-      <td><code>{{f['detail']}}</code></td>
-      <td>{{f['c']}}</td>
-    </tr>
-    {% endfor %}
-  </table>
-  
-  <h2>Assets</h2>
-  <table>
-    <tr><th>Kind</th><th>Value</th></tr>
-    {% for a in assets %}
-    <tr><td>{{a['kind']}}</td><td><code>{{a['value']}}</code></td></tr>
-    {% endfor %}
-  </table>
-  </body></html>
-  
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <div class="nav">
+    <div class="wrap">
+      <div class="brand">🐞 BugDash</div>
+      <a href="/">Home</a>
+      <a href="/targets">Targets</a>
+      <a href="/templates">Templates</a>
+      <div class="right toggle" onclick="toggleTheme()">Theme</div>
+    </div>
+  </div>
+
+  <div class="wrap" data-autorefresh data-status="{{t['status']}}">
+    <div class="panel">
+      <h2 class="flex m0">
+        Task <code>{{t['id']}}</code> — <code>{{t['target']}}</code>
+        <span class="right">
+          {% if t['status']=='done' %}<span class="chip ok">done</span>
+          {% elif t['status']=='running' %}<span class="chip warn">running</span>
+          {% else %}<span class="chip gray">{{t['status']}}</span>{% endif %}
+        </span>
+      </h2>
+      <div class="content flex">
+        <a class="btn" href="/task/{{t['id']}}/raw">Raw nuclei JSON</a>
+        <span class="muted">Note: {{t['note']}}</span>
+      </div>
+    </div>
+
+    <div class="grid cols-2 mt16">
+      <div class="panel">
+        <h2 class="flex m0">Top findings <span class="right muted">
+          Min score: <input type="text" id="minScore" value="0" style="width:80px" oninput="applyMinScoreFilter()">
+        </span></h2>
+        <div class="content">
+          <table class="table" id="topFindings">
+            <thead><tr>
+              <th>Score</th><th>Label</th><th>Severity</th><th>Title</th><th>Detail</th><th>Why</th>
+            </tr></thead>
+            <tbody>
+            {% for f in tops %}
+              <tr data-score="{{f['score']}}">
+                <td>
+                  <div class="flex">
+                    <div class="scorebar"><i style="width: {{f['score'] | int}}%"></i></div>
+                    <b>{{f['score']}}</b>
+                  </div>
+                </td>
+                <td>
+                  {% if f['label']=='likely-bug' %}<span class="chip bad">likely-bug</span>
+                  {% elif f['label']=='sus' %}<span class="chip warn">sus</span>
+                  {% else %}<span class="chip info">info</span>{% endif %}
+                </td>
+                <td>
+                  {% if f['severity']=='critical' or f['severity']=='high' %}<span class="chip bad">{{f['severity']}}</span>
+                  {% elif f['severity']=='medium' %}<span class="chip warn">{{f['severity']}}</span>
+                  {% elif f['severity']=='low' %}<span class="chip gray">{{f['severity']}}</span>
+                  {% else %}<span class="chip info">{{f['severity']}}</span>{% endif %}
+                </td>
+                <td>{{f['title']}}</td>
+                <td><code title="{{f['detail']}}">{{f['detail']}}</code></td>
+                <td class="muted" title="{{f['reasons']}}">{{f['reasons']}}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 class="m0">Findings (deduped)</h2>
+        <div class="content">
+          <table class="table">
+            <thead><tr><th>Label</th><th>Severity</th><th>Title</th><th>Detail</th><th>Count</th></tr></thead>
+            <tbody>
+            {% for f in findings %}
+              <tr>
+                <td>
+                  {% if f['label']=='likely-bug' %}<span class="chip bad">likely-bug</span>
+                  {% elif f['label']=='sus' %}<span class="chip warn">sus</span>
+                  {% else %}<span class="chip info">info</span>{% endif %}
+                </td>
+                <td>
+                  {% if f['severity']=='critical' or f['severity']=='high' %}<span class="chip bad">{{f['severity']}}</span>
+                  {% elif f['severity']=='medium' %}<span class="chip warn">{{f['severity']}}</span>
+                  {% elif f['severity']=='low' %}<span class="chip gray">{{f['severity']}}</span>
+                  {% else %}<span class="chip info">{{f['severity']}}</span>{% endif %}
+                </td>
+                <td>{{f['title']}}</td>
+                <td><code title="{{f['detail']}}">{{f['detail']}}</code></td>
+                <td>{{f['c']}}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel mt16">
+      <h2 class="m0">Assets</h2>
+      <div class="content">
+        <div class="cards">
+          {% for a in assets %}
+          <div class="card">
+            <div class="k">{{a['kind']}}</div>
+            <code>{{a['value']}}</code>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>enableAutoRefresh(4000)</script>
+</body>
+</html>

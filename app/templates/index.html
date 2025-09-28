@@ -1,25 +1,64 @@
-<!doctype html><html><head>
-  <meta charset="utf-8"><title>BugDash</title>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard</title>
   <link rel="stylesheet" href="/static/main.css">
-  </head><body>
-  <h1>BugDash</h1>
-  <form method="post" action="/scan">
-    <input name="target" placeholder="manual: example.com" required>
-    <button>Start Scan</button>
-    <a href="/templates">Templates</a> • <a href="/targets">Targets ({{tcount}})</a>
-  </form>
-  <h2>Recent Tasks</h2>
-  <table>
-    <tr><th>Task</th><th>Target</th><th>Status</th><th>Note</th><th>When (epoch)</th></tr>
-    {% for t in tasks %}
-    <tr>
-      <td><a href="/task/{{t['id']}}">{{t['id']}}</a></td>
-      <td>{{t['target']}}</td>
-      <td>{{t['status']}}</td>
-      <td>{{t['note']}}</td>
-      <td>{{t['created_at']}}</td>
-    </tr>
-    {% endfor %}
-  </table>
-  </body></html>
-  
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <div class="nav">
+    <div class="wrap">
+      <div class="brand">Dashboard</div>
+      <a href="/">Home</a>
+      <a href="/targets">Targets ({{tcount}})</a>
+      <a href="/templates">Templates</a>
+      <div class="right toggle" onclick="toggleTheme()">Theme</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="panel">
+      <h2>Start a manual scan</h2>
+      <div class="content">
+        <form method="post" action="/scan" class="flex">
+          <input name="target" placeholder="example.com" required>
+          <button>Start Scan</button>
+        </form>
+        <p class="muted mt8">Tip: manual scans auto-add <code>*.domain</code> to scope.</p>
+      </div>
+    </div>
+
+    <div class="panel mt16">
+      <h2>Recent tasks</h2>
+      <span class="chip warn right">running: {{running}}</span>
+      <div class="content">
+        <table class="table">
+          <thead><tr>
+            <th>Task</th><th>Target</th><th>Status</th><th>Note</th><th>When</th>
+          </tr></thead>
+          <tbody>
+          {% for t in tasks %}
+            <tr>
+              <td><a class="btn" href="/task/{{t['id']}}">{{t['id']}}</a></td>
+              <td><code>{{t['target']}}</code></td>
+              <td>
+                {% if t['status']=='done' %}
+                <span class="chip ok">done</span>
+                {% elif t['status']=='running' %}
+                <span class="chip warn">running</span>
+                {% else %}
+                <span class="chip gray">{{t['status']}}</span>
+                {% endif %}
+              </td>
+              <td class="muted">{{t['note']}}</td>
+              <td class="muted">{{t['created_at']}}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

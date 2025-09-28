@@ -72,29 +72,24 @@ def queued_or_running():
 
 def enqueue_due():
     now = int(time.time())
-    need = max(0, MAX_PARALLEL_QUEUED - queued_or_running())
-    if need <= 0: return 0
     enq = 0
     with db() as con:
-        # SQLite doesn't support NULLS FIRST — use CASE to prioritize NULLs
         cur = con.execute(
             """SELECT id,pattern,seed,last_scanned
                FROM targets
                WHERE enabled=1 AND (last_scanned IS NULL OR ? - last_scanned > ?)
                ORDER BY (last_scanned IS NOT NULL), last_scanned ASC
                LIMIT ?""",
-            (now, COOLDOWN, need)
+            (now, COOLDOWN, MAX_PARALLEL_QUEUED)
         )
         rows = cur.fetchall()
         for tid, pat, seed, last in rows:
             task_id = hashlib.sha1(f"{tid}-{now}".encode()).hexdigest()[:12]
-            con.execute("INSERT OR REPLACE INTO tasks(id,target,created_at,status,note) VALUES(?,?,?,?,?)",
+            con.execute("INSERT OR IGNORE INTO tasks(id,target,created_at,status,note) VALUES(?,?,?,?,?)",
                         (task_id, seed, now, "queued", f"auto: {pat}"))
-            con.execute("UPDATE targets SET last_scanned=? WHERE id=?", (now, tid))
-            con.commit()
-            subprocess.run(["docker","exec","-d","bugdash-worker","python3","/usr/local/bin/run_pipeline.py",task_id,seed],
-                           check=False)
+            # do NOT touch targets.last_scanned here
             enq += 1
+        con.commit()
     if enq:
         print(f"[scheduler] enqueued {enq} task(s)")
     return enq

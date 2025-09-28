@@ -2,10 +2,10 @@ services:
   app:
     build: ./app
     container_name: bugdash-app
-    ports: ["8080:8080"]
+    ports: ["8081:8080"]
     environment:
-      AUTH_USERNAME: "admin"         # change me
-      AUTH_PASSWORD: "change-me"     # change me
+      AUTH_USERNAME: "admin"
+      AUTH_PASSWORD: "change-me"
       DB_PATH: "/data/bugdash.db"
       NUCLEI_TEMPLATES_DIR: "/data/nuclei-templates"
       CUSTOM_TEMPLATES_DIR: "/data/custom-templates"
@@ -21,6 +21,8 @@ services:
       DB_PATH: "/data/bugdash.db"
       NUCLEI_TEMPLATES_DIR: "/data/nuclei-templates"
       CUSTOM_TEMPLATES_DIR: "/data/custom-templates"
+      WORKER_CONCURRENCY: "3"        # <— run up to 3 scans in parallel
+      WORKER_POLL_SEC: "2"           # <— check the queue every 2s
     volumes:
       - ./data:/data
       - ./logs:/var/log/bugdash
@@ -30,10 +32,10 @@ services:
     container_name: bugdash-scheduler
     environment:
       DB_PATH: "/data/bugdash.db"
-      MERGE_WILDCARDS_INTERVAL_SEC: "1800"   # re-pull arkadiyt every 30m
-      ENQUEUE_INTERVAL_SEC: "120"            # check queue every 2m
-      SCAN_COOLDOWN_SEC: "86400"             # rescan each target ~daily
-      MAX_PARALLEL_QUEUED: "3"               # limit queued/running tasks
+      MERGE_WILDCARDS_INTERVAL_SEC: "1800"
+      ENQUEUE_INTERVAL_SEC: "30"       # <— try to enqueue often
+      SCAN_COOLDOWN_SEC: "86400"
+      MAX_PARALLEL_QUEUED: "100"       # <— with worker pulling, this can be big
       ARKADIYT_WILDCARDS_URL: "https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/wildcards.txt"
     volumes:
       - ./data:/data

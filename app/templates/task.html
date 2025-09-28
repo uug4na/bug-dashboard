@@ -1,119 +1,241 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Task {{t['id']}}</title>
   <link rel="stylesheet" href="/static/main.css">
   <script defer src="/static/app.js"></script>
 </head>
 <body>
   <div class="nav">
-    <div class="wrap">
-      <div class="brand">🐞 BugDash</div>
-      <a href="/">Home</a>
-      <a href="/targets">Targets</a>
-      <a href="/templates">Templates</a>
-      <div class="right toggle" onclick="toggleTheme()">Theme</div>
+    <div class="nav-content">
+      <div class="brand">
+        Dashboard
+      </div>
+      <nav class="nav-links">
+        <a href="/" class="nav-link">Dashboard</a>
+        <a href="/targets" class="nav-link">Targets</a>
+        <a href="/templates" class="nav-link">Templates</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="theme-toggle" onclick="toggleTheme()">
+          <span id="theme-icon">🌙</span> Theme
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="wrap" data-autorefresh data-status="{{t['status']}}">
+  <div class="container" data-autorefresh data-status="{{t['status']}}">
+     Task Header 
+    <div class="panel mb-6">
+      <div class="panel-header">
+        <div class="flex items-center gap-4">
+          <h2 class="panel-title">Task <code>{{t['id']}}</code></h2>
+          <code class="text-sm">{{t['target']}}</code>
+        </div>
+        <div class="flex items-center gap-3">
+          {% if t['status']=='done' %}
+          <span class="badge badge-success">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Completed
+          </span>
+          {% elif t['status']=='running' %}
+          <span class="badge badge-warning">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            Running
+          </span>
+          {% else %}
+          <span class="badge badge-neutral">{{t['status']}}</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="panel-content">
+        <div class="flex gap-3 mb-4">
+          <a class="btn btn-secondary" href="/task/{{t['id']}}/raw">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Raw JSON
+          </a>
+          <a class="btn btn-secondary" href="/task/{{t['id']}}/log">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            Pipeline Log
+          </a>
+        </div>
+        <p class="text-muted"><strong>Note:</strong> {{t['note']}}</p>
+      </div>
+    </div>
+
+     Findings Grid 
+    <div class="grid grid-cols-2 gap-6 mb-6">
+       Top Findings 
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Critical Findings</h2>
+          <div class="flex items-center gap-3">
+            <label class="text-sm text-muted">Min Score:</label>
+            <input 
+              type="number" 
+              id="minScore" 
+              value="0" 
+              min="0" 
+              max="100"
+              class="form-input" 
+              style="width: 80px; padding: 4px 8px;" 
+              oninput="applyMinScoreFilter()"
+            >
+          </div>
+        </div>
+        <div class="panel-content">
+          <div class="table-container">
+            <table class="table" id="topFindings">
+              <thead>
+                <tr>
+                  <th>Score</th>
+                  <th>Label</th>
+                  <th>Severity</th>
+                  <th>Title</th>
+                  <th>Detail</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for f in tops %}
+                <tr data-score="{{f['score']}}">
+                  <td>
+                    <div class="score-bar">
+                      <div class="score-progress">
+                        <div class="score-fill" style="width: {{f['score']}}%"></div>
+                      </div>
+                      <span class="score-value">{{f['score']}}</span>
+                    </div>
+                  </td>
+                  <td>
+                    {% if f['label']=='likely-bug' %}
+                    <span class="badge badge-error">Bug</span>
+                    {% elif f['label']=='sus' %}
+                    <span class="badge badge-warning">Suspicious</span>
+                    {% else %}
+                    <span class="badge badge-info">Info</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if f['severity']=='critical' or f['severity']=='high' %}
+                    <span class="badge badge-error">{{f['severity']|title}}</span>
+                    {% elif f['severity']=='medium' %}
+                    <span class="badge badge-warning">{{f['severity']|title}}</span>
+                    {% elif f['severity']=='low' %}
+                    <span class="badge badge-neutral">{{f['severity']|title}}</span>
+                    {% else %}
+                    <span class="badge badge-info">{{f['severity']|title}}</span>
+                    {% endif %}
+                  </td>
+                  <td class="font-medium">{{f['title']}}</td>
+                  <td>
+                    <code title="{{f['detail']}}">
+                      {{f['detail'][:50]}}{% if f['detail']|length > 50 %}...{% endif %}
+                    </code>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+       Deduplicated Findings 
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">All Findings</h2>
+          <div class="badge badge-neutral">{{findings|length}} Unique</div>
+        </div>
+        <div class="panel-content">
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Label</th>
+                  <th>Severity</th>
+                  <th>Title</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for f in findings %}
+                <tr>
+                  <td>
+                    {% if f['label']=='likely-bug' %}
+                    <span class="badge badge-error">Bug</span>
+                    {% elif f['label']=='sus' %}
+                    <span class="badge badge-warning">Suspicious</span>
+                    {% else %}
+                    <span class="badge badge-info">Info</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if f['severity']=='critical' or f['severity']=='high' %}
+                    <span class="badge badge-error">{{f['severity']|title}}</span>
+                    {% elif f['severity']=='medium' %}
+                    <span class="badge badge-warning">{{f['severity']|title}}</span>
+                    {% elif f['severity']=='low' %}
+                    <span class="badge badge-neutral">{{f['severity']|title}}</span>
+                    {% else %}
+                    <span class="badge badge-info">{{f['severity']|title}}</span>
+                    {% endif %}
+                  </td>
+                  <td class="font-medium">{{f['title']}}</td>
+                  <td>
+                    <span class="badge badge-neutral">{{f['c']}}</span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+     Assets Panel 
     <div class="panel">
-      <h2 class="flex m0">
-        Task <code>{{t['id']}}</code> — <code>{{t['target']}}</code>
-        <span class="right">
-          {% if t['status']=='done' %}<span class="chip ok">done</span>
-          {% elif t['status']=='running' %}<span class="chip warn">running</span>
-          {% else %}<span class="chip gray">{{t['status']}}</span>{% endif %}
-        </span>
-      </h2>
-      <div class="content flex">
-        <a class="btn" href="/task/{{t['id']}}/raw">Raw nuclei JSON</a>
-        <span class="muted">Note: {{t['note']}}</span>
+      <div class="panel-header">
+        <h2 class="panel-title">Discovered Assets</h2>
+        <div class="badge badge-neutral">{{assets|length}} Assets</div>
       </div>
-    </div>
-
-    <div class="grid cols-2 mt16">
-      <div class="panel">
-        <h2 class="flex m0">Top findings <span class="right muted">
-          Min score: <input type="text" id="minScore" value="0" style="width:80px" oninput="applyMinScoreFilter()">
-        </span></h2>
-        <div class="content">
-          <table class="table" id="topFindings">
-            <thead><tr>
-              <th>Score</th><th>Label</th><th>Severity</th><th>Title</th><th>Detail</th><th>Why</th>
-            </tr></thead>
-            <tbody>
-            {% for f in tops %}
-              <tr data-score="{{f['score']}}">
-                <td>
-                  <div class="flex">
-                    <div class="scorebar"><i style="width: {{f['score'] | int}}%"></i></div>
-                    <b>{{f['score']}}</b>
-                  </div>
-                </td>
-                <td>
-                  {% if f['label']=='likely-bug' %}<span class="chip bad">likely-bug</span>
-                  {% elif f['label']=='sus' %}<span class="chip warn">sus</span>
-                  {% else %}<span class="chip info">info</span>{% endif %}
-                </td>
-                <td>
-                  {% if f['severity']=='critical' or f['severity']=='high' %}<span class="chip bad">{{f['severity']}}</span>
-                  {% elif f['severity']=='medium' %}<span class="chip warn">{{f['severity']}}</span>
-                  {% elif f['severity']=='low' %}<span class="chip gray">{{f['severity']}}</span>
-                  {% else %}<span class="chip info">{{f['severity']}}</span>{% endif %}
-                </td>
-                <td>{{f['title']}}</td>
-                <td><code title="{{f['detail']}}">{{f['detail']}}</code></td>
-                <td class="muted" title="{{f['reasons']}}">{{f['reasons']}}</td>
-              </tr>
-            {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2 class="m0">Findings (deduped)</h2>
-        <div class="content">
-          <table class="table">
-            <thead><tr><th>Label</th><th>Severity</th><th>Title</th><th>Detail</th><th>Count</th></tr></thead>
-            <tbody>
-            {% for f in findings %}
-              <tr>
-                <td>
-                  {% if f['label']=='likely-bug' %}<span class="chip bad">likely-bug</span>
-                  {% elif f['label']=='sus' %}<span class="chip warn">sus</span>
-                  {% else %}<span class="chip info">info</span>{% endif %}
-                </td>
-                <td>
-                  {% if f['severity']=='critical' or f['severity']=='high' %}<span class="chip bad">{{f['severity']}}</span>
-                  {% elif f['severity']=='medium' %}<span class="chip warn">{{f['severity']}}</span>
-                  {% elif f['severity']=='low' %}<span class="chip gray">{{f['severity']}}</span>
-                  {% else %}<span class="chip info">{{f['severity']}}</span>{% endif %}
-                </td>
-                <td>{{f['title']}}</td>
-                <td><code title="{{f['detail']}}">{{f['detail']}}</code></td>
-                <td>{{f['c']}}</td>
-              </tr>
-            {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel mt16">
-      <h2 class="m0">Assets</h2>
-      <div class="content">
-        <div class="cards">
+      <div class="panel-content">
+        <div class="card-grid">
           {% for a in assets %}
           <div class="card">
-            <div class="k">{{a['kind']}}</div>
-            <code>{{a['value']}}</code>
+            <div class="card-label">{{a['kind']|title}}</div>
+            <div class="card-value">{{a['value']}}</div>
           </div>
           {% endfor %}
         </div>
+
+        {% if not assets %}
+        <div class="text-center py-8">
+          <div class="text-muted mb-4">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin: 0 auto;">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v6m0 6v6"/>
+              <path d="M1 12h6m6 0h6"/>
+            </svg>
+          </div>
+          <p class="text-muted">No assets discovered yet.</p>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>

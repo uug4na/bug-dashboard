@@ -6,6 +6,8 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.status import HTTP_401_UNAUTHORIZED
 from base64 import b64decode
+from fastapi.responses import PlainTextResponse
+LOG_DIR = "/var/log/bugdash"
 
 AUTH_USER = os.getenv("AUTH_USERNAME", "admin")
 AUTH_PASS = os.getenv("AUTH_PASSWORD", "change-me")
@@ -166,3 +168,11 @@ def list_templates(request: Request):
     os.makedirs(CUSTOM_TEMPLATES_DIR, exist_ok=True)
     files = sorted(os.listdir(CUSTOM_TEMPLATES_DIR))
     return render("templates.html", {"request": request, "files": files})
+
+@app.get("/task/{task_id}/log", response_class=PlainTextResponse)
+def task_log(task_id: str):
+    path = os.path.join(LOG_DIR, f"task-{task_id}.log")
+    if not os.path.exists(path):
+        return PlainTextResponse("log not found (task may not have started yet)", status_code=404)
+    with open(path, "r") as f:
+        return PlainTextResponse(f.read())

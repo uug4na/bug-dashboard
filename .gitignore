@@ -13,3 +13,4 @@ data/bugdash.db
 .DS_Store
 Thumbs.db
 
+data/bugdash*

@@ -1,52 +1,157 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Targets</title>
   <link rel="stylesheet" href="/static/main.css">
   <script defer src="/static/app.js"></script>
 </head>
 <body>
   <div class="nav">
-    <div class="wrap">
-      <div class="brand">🐞 BugDash</div>
-      <a href="/">Home</a>
-      <a href="/targets">Targets</a>
-      <a href="/templates">Templates</a>
-      <div class="right toggle" onclick="toggleTheme()">Theme</div>
+    <div class="nav-content">
+      <div class="brand">
+        Dashboard
+      </div>
+      <nav class="nav-links">
+        <a href="/" class="nav-link">Dashboard</a>
+        <a href="/targets" class="nav-link active">Targets</a>
+        <a href="/templates" class="nav-link">Templates</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="theme-toggle" onclick="toggleTheme()">
+          <span id="theme-icon">🌙</span> Theme
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="wrap">
-    <div class="panel">
-      <h2 class="m0">Add target pattern</h2>
-      <div class="content">
-        <form method="post" action="/targets/add" class="flex">
-          <input name="pattern" placeholder="*.example.com or *-prod.example.com" required>
-          <button>Add</button>
+  <div class="container">
+     Add Target Panel 
+    <div class="panel mb-6">
+      <div class="panel-header">
+        <h2 class="panel-title">Add Target Pattern</h2>
+        <div class="badge badge-info">Pattern Matching</div>
+      </div>
+      <div class="panel-content">
+        <form method="post" action="/targets/add" class="form-group">
+          <input 
+            name="pattern" 
+            class="form-input" 
+            placeholder="*.example.com or *-prod.example.com" 
+            required
+            autocomplete="off"
+          >
+          <button type="submit" class="btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add Target
+          </button>
         </form>
+        <div class="mt-4 text-sm text-muted">
+          <p><strong>Pattern Examples:</strong></p>
+          <ul style="margin-left: 20px; margin-top: 8px;">
+            <li><code>*.example.com</code> - All subdomains of example.com</li>
+            <li><code>*-prod.example.com</code> - Production subdomains</li>
+            <li><code>api.example.com</code> - Specific subdomain</li>
+          </ul>
+        </div>
       </div>
     </div>
 
-    <div class="panel mt16">
-      <h2 class="m0">All targets</h2>
-      <div class="content">
-        <table class="table">
-          <thead><tr><th>Pattern</th><th>Seed</th><th>Last Scanned (epoch)</th><th>Enabled</th></tr></thead>
-          <tbody>
-          {% for t in targets %}
-            <tr>
-              <td><code>{{t['pattern']}}</code></td>
-              <td><code>{{t['seed']}}</code></td>
-              <td class="muted">{{t['last_scanned']}}</td>
-              <td>{% if t['enabled'] %}<span class="chip ok">yes</span>{% else %}<span class="chip gray">no</span>{% endif %}</td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
+     Targets List Panel 
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Target Patterns</h2>
+        <div class="badge badge-neutral">{{targets|length}} Total</div>
+      </div>
+      <div class="panel-content">
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Pattern</th>
+                <th>Seed Domain</th>
+                <th>Last Scanned</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in targets %}
+              <tr>
+                <td>
+                  <code class="font-semibold">{{t['pattern']}}</code>
+                </td>
+                <td>
+                  <code>{{t['seed']}}</code>
+                </td>
+                <td class="text-muted text-sm">
+                  {% if t['last_scanned'] %}
+                    {{t['last_scanned']}}
+                  {% else %}
+                    <span class="text-muted">Never</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if t['enabled'] %}
+                  <span class="badge badge-success">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Enabled
+                  </span>
+                  {% else %}
+                  <span class="badge badge-neutral">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="15" y1="9" x2="9" y2="15"/>
+                      <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    Disabled
+                  </span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="flex gap-2">
+                    <button class="btn btn-sm btn-secondary">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                      Edit
+                    </button>
+                    <button class="btn btn-sm" style="background: var(--success); border-color: var(--success);">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="21 21l-4.35-4.35"/>
+                      </svg>
+                      Scan Now
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if not targets %}
+        <div class="text-center py-8">
+          <div class="text-muted mb-4">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin: 0 auto;">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v6m0 6v6"/>
+              <path d="M1 12h6m6 0h6"/>
+            </svg>
+          </div>
+          <p class="text-muted">No target patterns configured yet. Add your first target above!</p>
+        </div>
+        {% endif %}
       </div>
     </div>
-
   </div>
 </body>
 </html>

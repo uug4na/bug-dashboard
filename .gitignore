@@ -8,7 +8,7 @@ __pycache__/
 # docker
 logs/
 data/bugdash.db
-
+/data/*
 # OS
 .DS_Store
 Thumbs.db

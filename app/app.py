@@ -176,3 +176,14 @@ def task_log(task_id: str):
         return PlainTextResponse("log not found (task may not have started yet)", status_code=404)
     with open(path, "r") as f:
         return PlainTextResponse(f.read())
+    
+@app.get("/finished_tasks", response_class=HTMLResponse)
+def finished_tasks():
+    with db() as con:
+        tasks = con.execute("""
+            SELECT * FROM tasks
+            WHERE status IN ('done','error')
+            ORDER BY created_at DESC
+            LIMIT 500
+        """).fetchall()
+    return render("finished_tasks.html", {"tasks": tasks})

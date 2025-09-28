@@ -10,7 +10,7 @@ ENV CGO_ENABLED=0 GOFLAGS="-buildvcs=false"
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     go install github.com/projectdiscovery/pdtm/cmd/pdtm@latest && \
-    /go/bin/pdtm -install -tools subfinder,dnsx,httpx,naabu,katana,nuclei && \
+    /go/bin/pdtm -install subfinder,dnsx,httpx,naabu,katana,nuclei && \
     go install github.com/tomnomnom/assetfinder@latest && \
     go install github.com/tomnomnom/waybackurls@latest && \
     go install github.com/lc/gau/v2/cmd/gau@latest

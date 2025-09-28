@@ -21,8 +21,8 @@ services:
       DB_PATH: "/data/bugdash.db"
       NUCLEI_TEMPLATES_DIR: "/data/nuclei-templates"
       CUSTOM_TEMPLATES_DIR: "/data/custom-templates"
-      WORKER_CONCURRENCY: "3"        # <— run up to 3 scans in parallel
-      WORKER_POLL_SEC: "2"           # <— check the queue every 2s
+      WORKER_CONCURRENCY: "3"        
+      WORKER_POLL_SEC: "2"           
     volumes:
       - ./data:/data
       - ./logs:/var/log/bugdash
@@ -33,9 +33,9 @@ services:
     environment:
       DB_PATH: "/data/bugdash.db"
       MERGE_WILDCARDS_INTERVAL_SEC: "1800"
-      ENQUEUE_INTERVAL_SEC: "30"       # <— try to enqueue often
+      ENQUEUE_INTERVAL_SEC: "30"       
       SCAN_COOLDOWN_SEC: "86400"
-      MAX_PARALLEL_QUEUED: "100"       # <— with worker pulling, this can be big
+      MAX_PARALLEL_QUEUED: "100"       
       ARKADIYT_WILDCARDS_URL: "https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/wildcards.txt"
     volumes:
       - ./data:/data

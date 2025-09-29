@@ -1,0 +1,35 @@
+name: Deploy Scheduler
+on:
+  push:
+    paths:
+      - 'scheduler/**'
+      - 'common/**'
+      - '.github/workflows/deploy-scheduler.yml'
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+    - uses: actions/checkout@v4
+    - uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+        service_account: ${{ secrets.GCP_SA_EMAIL }}
+    - uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+    - run: gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/bugdash-scheduler ./scheduler
+    - run: |
+        CONN=$(gcloud sql instances describe bugdash-sql --format='value(connectionName)')
+        gcloud run jobs create bugdash-scheduler --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/bugdash-scheduler \
+          --region ${{ secrets.GCP_REGION }} \
+          --add-cloudsql-instances $CONN \
+          --set-env-vars CLOUDSQL_INSTANCE=$CONN,DB_NAME=bugdash,DB_USER=postgres,DB_PASS=${{ secrets.DB_PASS }} \
+          --set-env-vars GOOGLE_CLOUD_PROJECT=${{ secrets.GCP_PROJECT_ID }},REGION=${{ secrets.GCP_REGION }},PUBSUB_TOPIC=bugdash-tasks \
+          --tasks 1 --cpu 1 --memory 512Mi || true
+        # optional: trigger the job once after deploy
+        gcloud run jobs execute bugdash-scheduler --region ${{ secrets.GCP_REGION }}

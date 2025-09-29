@@ -1,11 +1,5 @@
-# syntax=docker/dockerfile:1
-
-############################
-# Stage 1: build PD + go tools with Go 1.24.x
-############################
+# ---- builder for recon tools ----
 FROM golang:1.24.3 AS builder
-
-# Speed up go builds with caches
 ENV CGO_ENABLED=0 GOFLAGS="-buildvcs=false"
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
@@ -15,29 +9,18 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     go install github.com/tomnomnom/waybackurls@latest && \
     go install github.com/lc/gau/v2/cmd/gau@latest
 
-############################
-# Stage 2: slim runtime
-############################
+# ---- runtime ----
 FROM debian:bookworm-slim
-
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y \
-    ca-certificates curl wget git unzip jq python3 python3-pip \
-    dnsutils netcat-openbsd openssl \
- && rm -rf /var/lib/apt/lists/*
-
-# Copy statically built tools from builder
+RUN apt-get update && apt-get install -y ca-certificates curl git python3 python3-pip jq && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /go/bin/* /usr/local/bin/
 
-# Templates initializer + pipeline
-COPY init.sh /init.sh
-RUN chmod +x /init.sh
-
-COPY run_pipeline.py /usr/local/bin/run_pipeline.py
-RUN chmod +x /usr/local/bin/run_pipeline.py
-COPY supervisor.py /usr/local/bin/supervisor.py
-RUN chmod +x /usr/local/bin/supervisor.py
-
-WORKDIR /data
-
-CMD ["/bin/bash","-lc","/init.sh || true; exec python3 /usr/local/bin/supervisor.py"]
+WORKDIR /app
+COPY worker/requirements.txt /app/requirements.txt
+RUN pip3 install --no-cache-dir -r /app/requirements.txt
+COPY common /app/common
+COPY worker/worker_main.py /usr/local/bin/worker_main.py
+COPY worker/run_pipeline.py /usr/local/bin/run_pipeline.py
+COPY worker/init.sh /init.sh
+RUN chmod +x /init.sh /usr/local/bin/worker_main.py /usr/local/bin/run_pipeline.py
+ENV PYTHONUNBUFFERED=1
+CMD ["/bin/bash","-lc","/init.sh || true; exec python3 /usr/local/bin/worker_main.py"]
